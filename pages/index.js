@@ -238,7 +238,8 @@ export default function App(){
       }
     }
 
-    await supabase.from("plants").upsert(payload,{onConflict:"id"});
+    const {error:saveErr}=await supabase.from("plants").upsert(payload,{onConflict:"id"});
+    if(saveErr)console.error("Save error for field",field,":",saveErr.message,payload);
     if((field==="lw"||field==="lf"||field==="lr")&&value){
       const actionMap={lw:"Watered",lf:"Fertilized",lr:"Repotted"};
       const plant=plants.find(p=>p.id===id);
