@@ -1,8 +1,5 @@
-import Head from "next/head";
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
-import styles from "@/styles/Home.module.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 const PLANTS = [
   {id:1,n:"African Violet",r:"Dining Room",t:"flowering",i:5,pw:4,ph:3,lw:"2026-08-12",lf:"2026-08-12",mist:false,self:false,lr:"2026-02-21",snooze:null},
@@ -10,7 +7,7 @@ const PLANTS = [
   {id:3,n:"Asparagus Fern",r:"Dining Room",t:"fern",i:8,pw:5.5,ph:5.5,lw:"2026-08-09",lf:"2026-08-09",mist:true,self:true,lr:"2025-08-24",snooze:null},
   {id:4,n:"Bamboo",r:"Kitchen",t:"tropical",i:9,pw:6,ph:5,lw:"2026-08-09",lf:"2026-08-09",mist:true,self:false,lr:"2026-01-30",snooze:null},
   {id:5,n:"Bamboo Palm",r:"Dining Room",t:"tropical",i:12,pw:8,ph:6,lw:"2026-07-27",lf:"2026-07-09",mist:true,self:true,lr:"2026-06-09",snooze:"2026-08-15"},
-    {id:7,n:"Boston Fern",r:"Living Room",t:"fern",i:8,pw:5.5,ph:5,lw:"2026-08-09",lf:"2026-08-09",mist:true,self:true,lr:"2026-06-10",snooze:null},
+  {id:7,n:"Boston Fern",r:"Living Room",t:"fern",i:8,pw:5.5,ph:5,lw:"2026-08-09",lf:"2026-08-09",mist:true,self:true,lr:"2026-06-10",snooze:null},
   {id:8,n:"Bougainvillea",r:"Balcony",t:"flowering",i:5,pw:10,ph:10,lw:"2026-08-06",lf:"2026-07-27",mist:false,self:false,lr:"2025-08-26",ri:18,snooze:null},
   {id:9,n:"Brittle Cactus",r:"Balcony",t:"succulent",i:13,pw:4,ph:3.5,lw:"2026-07-29",lf:"2026-07-21",mist:false,self:false,lr:"2025-08-27",snooze:null},
   {id:10,n:"Carnation",r:"Balcony",t:"flowering",i:4,pw:6,ph:6,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2026-05-17",snooze:null},
@@ -31,7 +28,7 @@ const PLANTS = [
   {id:30,n:"Golden Pothos",r:"Dining Room",t:"tropical",i:11,pw:9,ph:6,lw:"2026-08-12",lf:"2026-08-12",mist:true,self:true,lr:"2026-06-09",snooze:null},
   {id:31,n:"Golden Pothos 2025",r:"Dining Room",t:"tropical",i:15,pw:6,ph:4.75,lw:"2026-06-13",lf:"2026-04-01",mist:true,self:true,lr:"2025-08-12",snooze:"2026-08-14"},
   {id:32,n:"Golden Sedum",r:"Balcony",t:"succulent",i:10,pw:6,ph:6,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2026-06-04",snooze:null},
-    {id:34,n:"Heartleaf Philodendron",r:"Dining Room",t:"tropical",i:11,pw:5.5,ph:5,lw:"2026-08-12",lf:"2026-08-12",mist:true,self:true,lr:"2026-06-09",snooze:null},
+  {id:34,n:"Heartleaf Philodendron",r:"Dining Room",t:"tropical",i:11,pw:5.5,ph:5,lw:"2026-08-12",lf:"2026-08-12",mist:true,self:true,lr:"2026-06-09",snooze:null},
   {id:35,n:"Heartleaf Philodendron 2024",r:"Dining Room",t:"tropical",i:15,pw:6,ph:4.75,lw:"2026-06-13",lf:"2026-04-01",mist:true,self:true,lr:"2025-08-12",snooze:"2026-08-14"},
   {id:36,n:"Indian Fig & Golden Rat Tail",r:"Balcony",t:"succulent",i:13,pw:6,ph:6,lw:"2026-07-29",lf:"2026-07-09",mist:false,self:false,lr:"2026-06-04",snooze:null},
   {id:38,n:"Jade",r:"Balcony",t:"succulent",i:11,pw:3.5,ph:3.5,lw:"2026-07-29",lf:"2026-07-21",mist:false,self:false,lr:"2026-02-21",snooze:"2026-08-12"},
@@ -42,12 +39,11 @@ const PLANTS = [
   {id:45,n:"Monstera Thai",r:"Dining Room",t:"tropical",i:14,pw:10,ph:6,lw:"2026-07-27",lf:"2026-07-09",mist:true,self:true,lr:"2026-06-09",snooze:"2026-08-14"},
   {id:46,n:"Moon Cactus",r:"Living Room",t:"succulent",i:18,pw:2,ph:3,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2025-08-25",ri:30,snooze:null},
   {id:48,n:"Peace Lily",r:"Bedroom",t:"tropical",i:12,pw:6,ph:4.5,lw:"2026-07-29",lf:"2026-08-09",mist:true,self:true,lr:"2026-04-24",snooze:"2026-08-17"},
-    {id:50,n:"Pencil Cactus",r:"Balcony",t:"succulent",i:11,pw:4.5,ph:4,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2026-07-21",snooze:null},
+  {id:50,n:"Pencil Cactus",r:"Balcony",t:"succulent",i:11,pw:4.5,ph:4,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2026-07-21",snooze:null},
   {id:52,n:"Philodendron Brasil",r:"Bedroom",t:"tropical",i:6,pw:3.5,ph:3.5,lw:"2026-07-29",lf:"2026-06-27",mist:true,self:false,lr:"2025-07-11",snooze:"2026-08-14"},
   {id:53,n:"Poinsettia",r:"Balcony",t:"flowering",i:5,pw:6,ph:6,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2025-12-15",snooze:null},
   {id:55,n:"Red Treasure",r:"Balcony",t:"succulent",i:13,pw:4,ph:5,lw:"2026-07-29",lf:"2026-05-27",mist:false,self:false,lr:"2025-08-28",ri:14,snooze:"2026-08-12"},
-  {id:83,n:"Red Treasure 2026",r:"Balcony",t:"succulent",i:13,pw:6,ph:6,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2026-06-04",snooze:null},
-    {id:57,n:"Rubber Plant",r:"Living Room",t:"tropical",i:8,pw:8.5,ph:8.5,lw:"2026-05-07",lf:"2026-05-07",mist:true,self:false,lr:"2025-08-24",ri:30,snooze:"2026-08-14"},
+  {id:57,n:"Rubber Plant",r:"Living Room",t:"tropical",i:8,pw:8.5,ph:8.5,lw:"2026-05-07",lf:"2026-05-07",mist:true,self:false,lr:"2025-08-24",ri:30,snooze:"2026-08-14"},
   {id:58,n:"Snake Plant",r:"Studio",t:"succulent",i:14,pw:8,ph:7,lw:"2026-06-13",lf:"2026-04-01",mist:false,self:false,lr:"2026-01-23",snooze:"2026-08-14"},
   {id:59,n:"Snake Plant 2026",r:"Dining Room",t:"succulent",i:10,pw:3.5,ph:3,lw:"2026-06-13",lf:"2026-04-09",mist:false,self:false,lr:"2026-02-04",snooze:"2026-08-14"},
   {id:60,n:"Spider Plant",r:"Bedroom",t:"tropical",i:9,pw:10.5,ph:9,lw:"2026-08-09",lf:"2026-08-09",mist:true,self:false,lr:"2026-06-10",snooze:null},
@@ -67,6 +63,7 @@ const PLANTS = [
   {id:79,n:"Maranta Leuconeura",r:"Bedroom",t:"tropical",i:7,pw:3,ph:3,lw:"2026-08-09",lf:"2026-08-09",mist:true,self:false,lr:"2026-04-21",snooze:null},
   {id:80,n:"Dracaena Fragrans",r:"Dining Room",t:"tropical",i:7,pw:3,ph:3,lw:"2026-08-09",lf:"2026-08-09",mist:true,self:false,lr:"2026-04-21",snooze:null},
   {id:82,n:"Serrano Pepper",r:"Balcony",t:"herb",i:3,pw:6,ph:5,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2026-06-09",snooze:null},
+  {id:83,n:"Red Treasure 2026",r:"Balcony",t:"succulent",i:13,pw:6,ph:6,lw:"2026-08-09",lf:"2026-08-09",mist:false,self:false,lr:"2026-06-04",snooze:null},
   {id:85,n:"Phalaenopsis White",r:"Living Room",t:"flowering",i:7,pw:0,ph:0,lw:"2026-08-09",lf:"2026-01-01",mist:false,self:false,lr:"2026-07-09",snooze:"2026-08-13"},
 ];
 
@@ -77,44 +74,86 @@ const DEPTH={succulent:70,fern:60,herb:60,tropical:60,flowering:60,tree:50};
 const METER={succulent:"1-2/10",tropical:"3-4/10",fern:"5-6/10",herb:"4-5/10",flowering:"3-4/10",tree:"3-4/10"};
 const RECHECK={succulent:3,fern:1,herb:1,tropical:2,flowering:2,tree:2};
 const REPOT_M={succulent:24,tropical:12,fern:12,herb:12,flowering:12,tree:24};
-function repotDue(lr,months){const d=new Date(lr+"T12:00:00");d.setMonth(d.getMonth()+months);return d;}
 
+function repotDue(lr,months){const d=new Date(lr+"T12:00:00");d.setMonth(d.getMonth()+months);return d;}
 function today(){return new Date().toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"});}
 function days(ds,ref){if(!ds)return 9999;return Math.floor((ref-new Date(ds+"T12:00:00"))/86400000);}
 function nwd(lw,i,ref){const d=new Date(lw+"T12:00:00");d.setDate(d.getDate()+i);return Math.ceil((d-ref)/86400000);}
-function addDays(ds,n){const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()+n);return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});}
 function snoozeDate(ds,n){const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().split("T")[0];}
-
-function loadLogs(){
-  try{const raw=localStorage.getItem("plantlogs_v2");return raw?JSON.parse(raw):{};}
-  catch(e){return{};}
-}
-function saveLogs(logs){
-  try{localStorage.setItem("plantlogs_v2",JSON.stringify(logs));}
-  catch(e){}
-}
 
 export default function App(){
   const [room,setRoom]=useState("all");
   const [date,setDate]=useState(today());
   const [show,setShow]=useState("care");
-  const [logs,setLogsState]=useState(()=>loadLogs());
+  const [logs,setLogsState]=useState({});
   const [tab,setTab]=useState("schedule");
   const [copied,setCopied]=useState(false);
   const [copyMsg,setCopyMsg]=useState("");
+  const [saving,setSaving]=useState(false);
+  const [loading,setLoading]=useState(true);
 
-  function setLogs(fn){
-    setLogsState(prev=>{
-      const next=typeof fn==="function"?fn(prev):fn;
-      saveLogs(next);
-      return next;
-    });
+  // Load all plant logs from Supabase on mount
+  useEffect(()=>{
+    async function loadFromDB(){
+      setLoading(true);
+      const {data,error}=await supabase
+        .from("plants")
+        .select("id,last_watered,last_fertilized,last_repotted,snooze_until,mist");
+      if(error){console.error("Load error:",error);setLoading(false);return;}
+      const rebuilt={};
+      data.forEach(row=>{
+        rebuilt[row.id]={
+          lw:row.last_watered||null,
+          lf:row.last_fertilized||null,
+          lr:row.last_repotted||null,
+          snooze:row.snooze_until||null,
+          misted:null, // misting is still session-only
+        };
+      });
+      setLogsState(rebuilt);
+      setLoading(false);
+    }
+    loadFromDB();
+  },[]);
+
+  // Save a single field update to Supabase
+  async function saveToDb(id,field,value){
+    const colMap={lw:"last_watered",lf:"last_fertilized",lr:"last_repotted",snooze:"snooze_until"};
+    const col=colMap[field];
+    if(!col)return; // misted is session-only, skip DB
+    setSaving(true);
+    const {error}=await supabase
+      .from("plants")
+      .upsert({id, [col]:value||null},{onConflict:"id"});
+    if(error)console.error("Save error:",error);
+    setSaving(false);
+
+    // Also write to care_events for watering/fertilizing/repotting
+    if((field==="lw"||field==="lf"||field==="lr")&&value){
+      const actionMap={lw:"Watered",lf:"Fertilized",lr:"Repotted"};
+      const plant=PLANTS.find(p=>p.id===id);
+      await supabase.from("care_events").insert({
+        plant_id:id,
+        plant_name:plant?.n||"Unknown",
+        action:actionMap[field],
+        event_date:value,
+      });
+    }
+  }
+
+  const lg=id=>logs[id]||{};
+
+  function upd(id,f,v){
+    setLogsState(prev=>({...prev,[id]:{...(prev[id]||{}),[f]:v}}));
+    saveToDb(id,f,v);
+  }
+
+  function clr(id,f){
+    setLogsState(prev=>({...prev,[id]:{...(prev[id]||{}),[f]:null}}));
+    saveToDb(id,f,null);
   }
 
   const ref=new Date(date+"T12:00:00");
-  const lg=id=>logs[id]||{};
-  const upd=(id,f,v)=>setLogs(p=>({...p,[id]:{...(p[id]||{}),[f]:v}}));
-  const clr=(id,f)=>setLogs(p=>({...p,[id]:{...(p[id]||{}),[f]:null}}));
 
   const rows=PLANTS.map(p=>{
     const l=lg(p.id);
@@ -138,8 +177,8 @@ export default function App(){
     .filter(p=>{
       if(show==="care")return(p.w||p.f)&&!p.snoozed;
       if(show==="mist")return p.needsMist&&!p.mistedToday;
-      if(show==="water")return p.w&&!p.mT;
-      if(show==="fert")return p.f&&!p.mT;
+      if(show==="water")return p.w&&!p.snoozed;
+      if(show==="fert")return p.f&&!p.snoozed;
       if(show==="done")return p.wT||p.fT;
       if(show==="moist")return p.snoozed;
       if(show==="repot")return p.needsRepot||p.rT;
@@ -171,8 +210,19 @@ export default function App(){
 
   function copyLog(){
     const w=[],f=[],m=[],mi=[],rp=[];
-    PLANTS.forEach(p=>{const l=lg(p.id);if(l.lw===date)w.push(p.n);if(l.lf===date)f.push(p.n);if(l.snooze&&l.snooze>date)m.push(p.n);if(l.misted===date)mi.push(p.n);if(l.lr===date)rp.push(p.n);});
-    if(!w.length&&!f.length&&!m.length&&!mi.length&&!rp.length){setCopyMsg("Nothing logged yet!");setTimeout(()=>setCopyMsg(""),3000);return;}
+    PLANTS.forEach(p=>{
+      const l=lg(p.id);
+      if(l.lw===date)w.push(p.n);
+      if(l.lf===date)f.push(p.n);
+      if(l.snooze&&l.snooze>date)m.push(p.n);
+      if(l.misted===date)mi.push(p.n);
+      if(l.lr===date)rp.push(p.n);
+    });
+    if(!w.length&&!f.length&&!m.length&&!mi.length&&!rp.length){
+      setCopyMsg("Nothing logged yet!");
+      setTimeout(()=>setCopyMsg(""),3000);
+      return;
+    }
     let msg=`Plant care log for ${date}:\n`;
     if(w.length)msg+=`Watered: ${w.join(", ")}\n`;
     if(f.length)msg+=`Fertilized: ${f.join(", ")}\n`;
@@ -183,23 +233,39 @@ export default function App(){
     try{navigator.clipboard.writeText(msg).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});}catch(e){}
   }
 
-  function clearToday(){
-    setLogs(p=>{
-      const n={...p};
-      Object.keys(n).forEach(id=>{
-        if(n[id].lw===date)n[id]={...n[id],lw:null};
-        if(n[id].lf===date)n[id]={...n[id],lf:null};
-        if(n[id].lr===date)n[id]={...n[id],lr:null};
-        n[id]={...n[id],snooze:null};
-      });
-      return n;
+  async function clearToday(){
+    const updates=PLANTS.map(async p=>{
+      const l=lg(p.id);
+      const patch={};
+      if(l.lw===date)patch.lw=null;
+      if(l.lf===date)patch.lf=null;
+      if(l.lr===date)patch.lr=null;
+      if(Object.keys(patch).length){
+        setLogsState(prev=>({...prev,[p.id]:{...(prev[p.id]||{}),...patch,snooze:null}}));
+        await supabase.from("plants").upsert({
+          id:p.id,
+          ...(patch.lw!==undefined&&{last_watered:null}),
+          ...(patch.lf!==undefined&&{last_fertilized:null}),
+          ...(patch.lr!==undefined&&{last_repotted:null}),
+          snooze_until:null,
+        },{onConflict:"id"});
+      }
     });
+    await Promise.all(updates);
   }
 
   const sel={width:"100%",padding:"7px 8px",borderRadius:8,border:"1px solid #ddd",fontSize:13,fontFamily:"inherit",background:"#fff"};
 
+  if(loading)return(
+    <div style={{fontFamily:"system-ui,sans-serif",padding:40,textAlign:"center",color:"#aaa"}}>
+      Loading plants... 🌱
+    </div>
+  );
+
   return(
     <div style={{fontFamily:"system-ui,sans-serif",padding:"12px 10px",color:"#1a1a1a",maxWidth:600,margin:"0 auto"}}>
+      {saving&&<div style={{position:"fixed",top:8,right:12,fontSize:11,color:"#aaa",background:"#fff",padding:"4px 10px",borderRadius:8,border:"1px solid #eee",zIndex:99}}>Saving...</div>}
+
       <div style={{display:"flex",borderBottom:"1px solid #e0e0d8",marginBottom:14}}>
         {[["schedule","Schedule"],["list","All Plants"]].map(([k,v])=>(
           <button key={k} onClick={()=>setTab(k)} style={{padding:"8px 14px",fontSize:13,border:"none",background:"none",cursor:"pointer",color:tab===k?"#1a1a1a":"#aaa",borderBottom:tab===k?"2px solid #1a1a1a":"2px solid transparent",fontWeight:tab===k?600:400,marginBottom:-1,fontFamily:"inherit"}}>{v}</button>
@@ -264,14 +330,14 @@ export default function App(){
                     <div style={{fontSize:14,fontWeight:600,marginBottom:5,display:"flex",flexWrap:"wrap",alignItems:"center",gap:3}}>
                       {p.n}
                       {p.self&&<Pill s={{bg:"#EEEDFE",border:"",text:"#534AB7"}} txt="self-water"/>}
-                    {p.mist&&<Pill s={{bg:"#E1F5EE",border:"",text:"#0F6E56"}} txt={p.mistedToday?"Misted today":"Mist"}/> }
+                      {p.mist&&<Pill s={{bg:"#E1F5EE",border:"",text:"#0F6E56"}} txt={p.mistedToday?"Misted today":"Mist"}/>}
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:6}}>
                       {p.snoozed&&<Pill s={c.moist} txt={`Snoozed until ${new Date(p.snoozeUntil+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`}/>}
                       {p.wT&&<Pill s={c.water} txt="Watered today"/>}
                       {p.fT&&<Pill s={c.fert} txt="Fertilized today"/>}
-                      {!p.wT&&!p.mT&&p.w&&<Pill s={c.water} txt="Water"/>}
-                      {!p.fT&&!p.mT&&p.f&&<Pill s={c.fert} txt="Fertilize"/>}
+                      {!p.wT&&p.w&&<Pill s={c.water} txt="Water"/>}
+                      {!p.fT&&p.f&&<Pill s={c.fert} txt="Fertilize"/>}
                       {p.needsRepot&&<Pill s={c.repot} txt="Repot due"/>}
                       {p.rT&&<Pill s={c.repot} txt="Repotted today"/>}
                     </div>
@@ -317,13 +383,13 @@ export default function App(){
                 const lastW=log.lw||p.lw;
                 const lastF=log.lf||p.lf;
                 return(
-                <div key={p.id} style={{padding:"7px 0",borderBottom:"1px solid #fafaf8"}}>
-                  <div style={{fontSize:13,fontWeight:500}}>{p.n}{p.self&&<span style={{fontSize:10,background:"#EEEDFE",color:"#534AB7",padding:"1px 6px",borderRadius:99,marginLeft:5}}>self-water</span>}</div>
-                  <div style={{fontSize:11,color:"#aaa"}}>{p.t} · every {p.i} days · {p.depth}% probe · {METER[p.t]}</div>
-                  <div style={{fontSize:11,color:"#aaa"}}>Pot: {p.pw}"W × {p.ph}"H {p.self?"(self-watering)":""}</div>
-                  <div style={{fontSize:11,color:"#aaa"}}>Repotted: {log.lr||p.lr||"?"} · next ~{p.lr?repotDue(log.lr||p.lr,p.ri||REPOT_M[p.t]||12).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"?"}</div>
-                  <div style={{fontSize:11,color:"#bbb"}}>Last watered: {lastW} · Last fertilized: {lastF||"never"}</div>
-                </div>
+                  <div key={p.id} style={{padding:"7px 0",borderBottom:"1px solid #fafaf8"}}>
+                    <div style={{fontSize:13,fontWeight:500}}>{p.n}{p.self&&<span style={{fontSize:10,background:"#EEEDFE",color:"#534AB7",padding:"1px 6px",borderRadius:99,marginLeft:5}}>self-water</span>}</div>
+                    <div style={{fontSize:11,color:"#aaa"}}>{p.t} · every {p.i} days · {DEPTH[p.t]}% probe · {METER[p.t]}</div>
+                    <div style={{fontSize:11,color:"#aaa"}}>Pot: {p.pw}"W × {p.ph}"H {p.self?"(self-watering)":""}</div>
+                    <div style={{fontSize:11,color:"#aaa"}}>Repotted: {log.lr||p.lr||"?"} · next ~{p.lr?repotDue(log.lr||p.lr,p.ri||REPOT_M[p.t]||12).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"?"}</div>
+                    <div style={{fontSize:11,color:"#bbb"}}>Last watered: {lastW} · Last fertilized: {lastF||"never"}</div>
+                  </div>
                 );
               })}
             </div>;
