@@ -194,7 +194,7 @@ export default function App(){
           lw:row.last_watered||null,
           lf:row.last_fertilized||null,
           lr:row.last_repotted||null,
-          snooze:row.snooze_until||null,
+          snooze:row.snooze_until?row.snooze_until.substring(0,10):null,
           pw:row.pot_width||null,
           ph:row.pot_height||null,
           pm:row.pot_material||null,
@@ -213,7 +213,7 @@ export default function App(){
     const col=colMap[field];
     if(!col)return;
     setSaving(true);
-    const payload={id,[col]:value||null};
+    const payload={id,[col]:(value&&value.length>0)?value:null};
 
     if(field==="lw"&&value&&prevLW){
       const gap=Math.round((new Date(value+"T12:00:00")-new Date(prevLW+"T12:00:00"))/86400000);
