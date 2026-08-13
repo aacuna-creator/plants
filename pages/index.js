@@ -127,6 +127,7 @@ export default function App(){
   const [tab,setTab]=useState("schedule");
   const [copied,setCopied]=useState(false);
   const [copyMsg,setCopyMsg]=useState("");
+  // copy/clear kept for log function but buttons removed
   const [saving,setSaving]=useState(false);
   const [loading,setLoading]=useState(true);
   const [weather,setWeather]=useState(null);
@@ -473,11 +474,7 @@ export default function App(){
               <option value="all">All plants</option>
             </select>
           </div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            <Btn s={c.neutral} lbl={copied?"Copied!":"Copy log"} fn={copyLog}/>
-            <Btn s={c.danger} lbl="Clear today" fn={clearToday}/>
-          </div>
-          {copyMsg&&<div style={{marginTop:10,background:"#fff",border:"1px solid #e0e0d8",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#333",whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{copyMsg}</div>}
+
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5,marginBottom:12}}>
