@@ -162,8 +162,7 @@ export default function App(){
     async function load(){
       setLoading(true);
       const {data,error}=await supabase.from("plants")
-        .select("id,name,room,type,interval_days,pot_width,pot_height,self_watering,last_watered,last_fertilized,last_repotted,snooze_until,learned_interval,watering_count,repot_interval_months,pot_material,deleted_at")
-        .is("deleted_at",null);
+        .select("id,name,room,type,interval_days,pot_width,pot_height,self_watering,last_watered,last_fertilized,last_repotted,snooze_until,learned_interval,watering_count,repot_interval_months,pot_material,deleted_at");
       if(error){console.error(error);setLoading(false);return;}
 
       // Merge DB rows with base data — DB wins for dynamic fields
@@ -175,9 +174,14 @@ export default function App(){
         if(row.watering_count)counts[row.id]=row.watering_count;
       });
 
-      // Build merged plant list: base plants + any new ones from DB
+      // Track deleted plant IDs from DB
+      const deletedIds=new Set(
+        data.filter(r=>r.deleted_at).map(r=>r.id)
+      );
+
+      // Build merged plant list: base plants (minus deleted) + any new ones from DB
       const baseIds=new Set(PLANTS_BASE.map(p=>p.id));
-      const dbOnlyPlants=data.filter(r=>!baseIds.has(r.id)).map(r=>({
+      const dbOnlyPlants=data.filter(r=>!baseIds.has(r.id)&&!r.deleted_at).map(r=>({
         id:r.id, n:r.name, r:r.room, t:r.type,
         i:r.interval_days||BASE_I[r.type]||7,
         pw:r.pot_width||0, ph:r.pot_height||0,
@@ -187,11 +191,11 @@ export default function App(){
         ri:r.repot_interval_months||null,
         snooze:r.snooze_until||null,
       }));
-      setPlants([...PLANTS_BASE,...dbOnlyPlants]);
+      setPlants([...PLANTS_BASE.filter(p=>!deletedIds.has(p.id)),...dbOnlyPlants]);
 
       // Build logs from DB
       const rebuilt={};
-      data.forEach(row=>{
+      data.filter(r=>!r.deleted_at).forEach(row=>{
         rebuilt[row.id]={
           lw:row.last_watered||null,
           lf:row.last_fertilized||null,
@@ -289,17 +293,20 @@ export default function App(){
     const {error}=await supabase.from("plants").update({
       deleted_at:new Date().toISOString(),
     }).eq("id",deleteModal.id);
-    if(!error){
-      await supabase.from("care_events").insert({
-        plant_id:deleteModal.id,
-        plant_name:deleteModal.n,
-        action:"Deleted",
-        event_date:today(),
-        notes:deleteReason||null,
-      });
-      setPlants(prev=>prev.filter(p=>p.id!==deleteModal.id));
-      setLogsState(prev=>{const n={...prev};delete n[deleteModal.id];return n;});
+    if(error){
+      console.error("Delete error:",error.message);
+      alert("Error deleting plant: "+error.message);
+      return;
     }
+    await supabase.from("care_events").insert({
+      plant_id:deleteModal.id,
+      plant_name:deleteModal.n,
+      action:"Deleted",
+      event_date:today(),
+      notes:deleteReason||null,
+    });
+    setPlants(prev=>prev.filter(p=>p.id!==deleteModal.id));
+    setLogsState(prev=>{const n={...prev};delete n[deleteModal.id];return n;});
     setDeleteModal(null);
     setDeleteReason("");
   }
