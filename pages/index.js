@@ -367,7 +367,7 @@ export default function App(){
   });
 
   const vis=rows.filter(p=>room==="all"||p.r===room).filter(p=>{
-    if(show==="care")return(p.w||p.f)&&!p.snoozed;
+    if(show==="care")return((p.w||p.f||p.wT||p.fT))&&!p.snoozed;
     if(show==="water")return p.w&&!p.snoozed;
     if(show==="fert")return p.f&&!p.snoozed;
     if(show==="done")return p.wT||p.fT;
