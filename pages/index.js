@@ -526,7 +526,7 @@ export default function App(){
                   <div style={{display:"flex",flexWrap:"wrap"}}>
                     {!p.wT&&<Btn s={c.water} lbl="Watered today" fn={()=>upd(p.id,"lw",date)}/>}
                     {!p.fT&&<Btn s={c.fert} lbl="Fertilized today" fn={()=>upd(p.id,"lf",date)}/>}
-                    {!p.snoozed&&(p.w||p.f)&&!p.wT&&!p.fT&&[1,3,5].map(d=>(
+                    {!p.snoozed&&p.w&&!p.wT&&[1,3,5].map(d=>(
                       <Btn key={d} s={c.moist} lbl={`Snooze ${d}d`} fn={()=>upd(p.id,"snooze",snoozeDate(date,d))}/>
                     ))}
                     {p.snoozed&&<Btn s={c.undo} lbl="Undo snooze" fn={()=>clr(p.id,"snooze")}/>}
