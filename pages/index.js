@@ -104,9 +104,8 @@ function smartWaterInterval(p,weather,learned){
   return Math.max(1,Math.round(base*sm*pm*wm));
 }
 function smartFertInterval(t){
-  const base=FERT_BASE[t]||28;
-  const sm=SEASON_F[new Date().getMonth()]||1.0;
-  return Math.max(7,Math.round(base*sm));
+  // Fertilizer intervals are fixed — season affects when plants need water not nutrients
+  return FERT_BASE[t]||28;
 }
 
 function repotDue(lr,months){const d=new Date(lr+"T12:00:00");d.setMonth(d.getMonth()+months);return d;}
@@ -141,6 +140,8 @@ export default function App(){
   const [deleteReason,setDeleteReason]=useState("");
   const [repotModal,setRepotModal]=useState(null); // {plant}
   const [repotForm,setRepotForm]=useState({pw:"",ph:"",pm:"plastic",date:today()});
+  const [snoozeModal,setSnoozeModal]=useState(null); // plant
+  const [snoozeTarget,setSnoozeTarget]=useState("");
   const [pastDateModal,setPastDateModal]=useState(null); // {plant,action}
   const [pastDate,setPastDate]=useState(today());
 
@@ -285,10 +286,9 @@ export default function App(){
   // Delete plant
   async function deletePlant(){
     if(!deleteModal)return;
-    const {error}=await supabase.from("plants").upsert({
-      id:deleteModal.id,
+    const {error}=await supabase.from("plants").update({
       deleted_at:new Date().toISOString(),
-    },{onConflict:"id"});
+    }).eq("id",deleteModal.id);
     if(!error){
       await supabase.from("care_events").insert({
         plant_id:deleteModal.id,
@@ -298,6 +298,7 @@ export default function App(){
         notes:deleteReason||null,
       });
       setPlants(prev=>prev.filter(p=>p.id!==deleteModal.id));
+      setLogsState(prev=>{const n={...prev};delete n[deleteModal.id];return n;});
     }
     setDeleteModal(null);
     setDeleteReason("");
@@ -526,9 +527,7 @@ export default function App(){
                   <div style={{display:"flex",flexWrap:"wrap"}}>
                     {!p.wT&&<Btn s={c.water} lbl="Watered today" fn={()=>upd(p.id,"lw",date)}/>}
                     {!p.fT&&<Btn s={c.fert} lbl="Fertilized today" fn={()=>upd(p.id,"lf",date)}/>}
-                    {!p.snoozed&&p.w&&!p.wT&&[1,3,5].map(d=>(
-                      <Btn key={d} s={c.moist} lbl={`Snooze ${d}d`} fn={()=>upd(p.id,"snooze",snoozeDate(date,d))}/>
-                    ))}
+                    {!p.snoozed&&p.w&&!p.wT&&<Btn s={c.moist} lbl="Snooze" fn={()=>{setSnoozeModal(p);setSnoozeTarget(snoozeDate(date,3));}}/>}
                     {p.snoozed&&<Btn s={c.undo} lbl="Undo snooze" fn={()=>clr(p.id,"snooze")}/>}
                     <Btn s={c.repot} lbl="Repotted" fn={()=>{setRepotModal(p);setRepotForm({pw:p.pw||"",ph:p.ph||"",pm:p.pm||"plastic",date:today()});}}/>
                     <Btn s={{bg:"#fff8e6",border:"#EF9F27",text:"#854F0B"}} lbl="Log past date" fn={()=>{setPastDateModal({plant:p,action:"water"});setPastDate(today());}}/>
@@ -661,6 +660,26 @@ export default function App(){
           </div>
         </div>
       </div>}
+      {/* SNOOZE MODAL */}
+      {snoozeModal&&<div style={modalStyle} onClick={e=>{if(e.target===e.currentTarget)setSnoozeModal(null);}}>
+        <div style={cardStyle}>
+          <div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Snooze {snoozeModal.n}</div>
+          <div style={{fontSize:13,color:"#666",marginBottom:14}}>Don't remind me to water until:</div>
+          <div style={{marginBottom:14}}>
+            <input type="date" value={snoozeTarget} min={date} onChange={e=>setSnoozeTarget(e.target.value)} style={inp}/>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:10}}>
+            {[1,3,5,7].map(d=>(
+              <button key={d} onClick={()=>setSnoozeTarget(snoozeDate(date,d))} style={{flex:1,padding:"6px",borderRadius:8,border:"1px solid #ddd",background:snoozeTarget===snoozeDate(date,d)?"#fff8e6":"#fff",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{d}d</button>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{if(snoozeTarget){upd(snoozeModal.id,"snooze",snoozeTarget);setSnoozeModal(null);}}} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:"#EF9F27",color:"#fff",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Snooze</button>
+            <button onClick={()=>setSnoozeModal(null)} style={{flex:1,padding:"9px",borderRadius:8,border:"1px solid #ddd",background:"#fff",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          </div>
+        </div>
+      </div>}
+
     </div>
   );
 }
