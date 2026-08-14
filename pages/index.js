@@ -238,7 +238,7 @@ export default function App(){
       }
     }
 
-    const {error:saveErr}=await supabase.from("plants").upsert(payload,{onConflict:"id"});
+    const {error:saveErr}=await supabase.from("plants").update(payload).eq("id",id);
     if(saveErr)console.error("Save error for field",field,":",saveErr.message,payload);
     if((field==="lw"||field==="lf"||field==="lr")&&value){
       const actionMap={lw:"Watered",lf:"Fertilized",lr:"Repotted"};
@@ -420,7 +420,7 @@ export default function App(){
       if(l.lw===date)patch.lw=null;if(l.lf===date)patch.lf=null;if(l.lr===date)patch.lr=null;
       if(Object.keys(patch).length){
         setLogsState(prev=>({...prev,[p.id]:{...(prev[p.id]||{}),...patch,snooze:null}}));
-        await supabase.from("plants").upsert({id:p.id,...(patch.lw!==undefined&&{last_watered:null}),...(patch.lf!==undefined&&{last_fertilized:null}),...(patch.lr!==undefined&&{last_repotted:null}),snooze_until:null},{onConflict:"id"});
+        await supabase.from("plants").update({...(patch.lw!==undefined&&{last_watered:null}),...(patch.lf!==undefined&&{last_fertilized:null}),...(patch.lr!==undefined&&{last_repotted:null}),snooze_until:null}).eq("id",p.id);
       }
     }));
   }
