@@ -146,12 +146,13 @@ export default function App(){
 
   // Fetch weather
   useEffect(()=>{
-    fetch("https://api.open-meteo.com/v1/forecast?latitude=32.7157&longitude=-117.1611&current=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles")
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=32.7157&longitude=-117.1611&current=temperature_2m,relative_humidity_2m&temperature_unit=celsius&timezone=America%2FLos_Angeles")
       .then(r=>r.json()).then(data=>{
-        const tempF=Math.round(data.current.temperature_2m);
+        const tempC=Math.round(data.current.temperature_2m);
         const humidity=Math.round(data.current.relative_humidity_2m);
+        const tempF=Math.round(tempC*9/5+32);
         setWeather({tempF,humidity});
-        setWeatherLabel(`${tempF}°F · ${humidity}% humidity`);
+        setWeatherLabel(`${tempC}°C · ${humidity}% humidity`);
       }).catch(()=>{});
   },[]);
 
