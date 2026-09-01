@@ -331,6 +331,9 @@ export default function App(){
     setMoveModal(null);
     setMoveRoom("");
   }
+
+  // Repot plant
+  async function repotPlant(){
     if(!repotModal)return;
     const pw=parseFloat(repotForm.pw)||repotModal.pw;
     const ph=parseFloat(repotForm.ph)||repotModal.ph;
