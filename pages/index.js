@@ -140,8 +140,8 @@ export default function App(){
   const [deleteReason,setDeleteReason]=useState("");
   const [repotModal,setRepotModal]=useState(null); // {plant}
   const [repotForm,setRepotForm]=useState({pw:"",ph:"",pm:"plastic",date:today()});
-  const [snoozeModal,setSnoozeModal]=useState(null); // plant
-  const [snoozeTarget,setSnoozeTarget]=useState("");
+  const [moveModal,setMoveModal]=useState(null); // plant
+  const [moveRoom,setMoveRoom]=useState("");
   const [pastDateModal,setPastDateModal]=useState(null); // {plant,action}
   const [pastDate,setPastDate]=useState(today());
 
@@ -182,7 +182,7 @@ export default function App(){
       // Build merged plant list: base plants (minus deleted) + any new ones from DB
       const baseIds=new Set(PLANTS_BASE.map(p=>p.id));
       const dbOnlyPlants=data.filter(r=>!baseIds.has(r.id)&&!r.deleted_at).map(r=>({
-        id:r.id, n:r.name, r:r.room, t:r.type,
+        id:r.id, n:r.name, r:r.room||"Living Room", t:r.type,
         i:r.interval_days||BASE_I[r.type]||7,
         pw:r.pot_width||0, ph:r.pot_height||0,
         pm:r.pot_material||"plastic",
@@ -191,7 +191,11 @@ export default function App(){
         ri:r.repot_interval_months||null,
         snooze:r.snooze_until||null,
       }));
-      setPlants([...PLANTS_BASE.filter(p=>!deletedIds.has(p.id)),...dbOnlyPlants]);
+      // Build rooms map from DB so moves to base plants persist
+      const dbRooms={};
+      data.forEach(row=>{if(row.room)dbRooms[row.id]=row.room;});
+
+      setPlants([...PLANTS_BASE.filter(p=>!deletedIds.has(p.id)).map(p=>({...p,r:dbRooms[p.id]||p.r})),...dbOnlyPlants]);
 
       // Build logs from DB
       const rebuilt={};
@@ -311,8 +315,22 @@ export default function App(){
     setDeleteReason("");
   }
 
-  // Repot plant
-  async function repotPlant(){
+  // Move plant to new room
+  async function movePlant(){
+    if(!moveModal||!moveRoom)return;
+    const {error}=await supabase.from("plants").update({room:moveRoom}).eq("id",moveModal.id);
+    if(error){console.error("Move error:",error.message);return;}
+    setPlants(prev=>prev.map(p=>p.id===moveModal.id?{...p,r:moveRoom}:p));
+    await supabase.from("care_events").insert({
+      plant_id:moveModal.id,
+      plant_name:moveModal.n,
+      action:"Moved",
+      event_date:today(),
+      notes:`Moved from ${moveModal.r} to ${moveRoom}`,
+    });
+    setMoveModal(null);
+    setMoveRoom("");
+  }
     if(!repotModal)return;
     const pw=parseFloat(repotForm.pw)||repotModal.pw;
     const ph=parseFloat(repotForm.ph)||repotModal.ph;
@@ -372,7 +390,9 @@ export default function App(){
     const needsRepot=!rT&&!!rDue&&rDue<=ref;
     const isLearned=!!learned&&count>=MIN_TO_LEARN;
     const pw=l.pw||p.pw, ph=l.ph||p.ph, pm=l.pm||p.pm||"plastic";
-    return{...p,lw,lf,wT,fT,snoozed,snoozeUntil,w,f,nd:nwd(lw,si,ref),lr,rDue,rT,needsRepot,si,fi,learned,count,isLearned,pw,ph,pm};
+    const wOverdue=w?Math.max(0,days(lw,ref)-si):0;
+    const fOverdue=f?Math.max(0,days(lf,ref)-fi):0;
+    return{...p,lw,lf,wT,fT,snoozed,snoozeUntil,w,f,nd:nwd(lw,si,ref),lr,rDue,rT,needsRepot,si,fi,learned,count,isLearned,pw,ph,pm,wOverdue,fOverdue};
   });
 
   const vis=rows.filter(p=>room==="all"||p.r===room).filter(p=>{
@@ -404,6 +424,17 @@ export default function App(){
     neutral:{bg:"#fff",border:"#ddd",text:"#333"},
     learned:{bg:"#FFF0F6",border:"#F0A0C0",text:"#8B1A4A"},
   };
+
+  // Overdue color: 0=green, 1-3=amber, 4+=red
+  function overdueStyle(days){
+    if(days<=0)return{bg:"#E6F1FB",border:"#85B7EB",text:"#0C447C"};
+    if(days<=3)return{bg:"#FFF3CD",border:"#FFC107",text:"#856404"};
+    return{bg:"#FFE0E0",border:"#F09595",text:"#A32D2D"};
+  }
+  function overdueLabel(base,d){
+    if(d<=0)return base;
+    return `${base} (+${d}d)`;
+  }
 
   const Pill=({s,txt})=><span style={{background:s.bg,color:s.text,fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:99,marginRight:3,display:"inline-block",whiteSpace:"nowrap"}}>{txt}</span>;
   const Btn=({s,lbl,fn})=><button onClick={fn} style={{fontSize:12,padding:"5px 10px",borderRadius:8,border:`1px solid ${s.border}`,background:s.bg,color:s.text,cursor:"pointer",marginRight:5,marginTop:5,fontFamily:"inherit",whiteSpace:"nowrap"}}>{lbl}</button>;
@@ -514,8 +545,8 @@ export default function App(){
                     {p.snoozed&&<Pill s={c.moist} txt={`Snoozed until ${new Date(p.snoozeUntil+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`}/>}
                     {p.wT&&<Pill s={c.water} txt="Watered today"/>}
                     {p.fT&&<Pill s={c.fert} txt="Fertilized today"/>}
-                    {!p.wT&&p.w&&<Pill s={c.water} txt="Water"/>}
-                    {!p.fT&&p.f&&<Pill s={c.fert} txt="Fertilize"/>}
+                    {!p.wT&&p.w&&<Pill s={overdueStyle(p.wOverdue)} txt={overdueLabel("Water",p.wOverdue)}/>}
+                    {!p.fT&&p.f&&<Pill s={overdueStyle(p.fOverdue)} txt={overdueLabel("Fertilize",p.fOverdue)}/>}
                     {p.needsRepot&&<Pill s={c.repot} txt="Repot due"/>}
                     {p.rT&&<Pill s={c.repot} txt="Repotted today"/>}
                   </div>
@@ -537,7 +568,7 @@ export default function App(){
                     {!p.snoozed&&p.w&&!p.wT&&<Btn s={c.moist} lbl="Snooze" fn={()=>{setSnoozeModal(p);setSnoozeTarget(snoozeDate(date,3));}}/>}
                     {p.snoozed&&<Btn s={c.undo} lbl="Undo snooze" fn={()=>clr(p.id,"snooze")}/>}
                     <Btn s={c.repot} lbl="Repotted" fn={()=>{setRepotModal(p);setRepotForm({pw:p.pw||"",ph:p.ph||"",pm:p.pm||"plastic",date:today()});}}/>
-                    <Btn s={{bg:"#fff8e6",border:"#EF9F27",text:"#854F0B"}} lbl="Log past date" fn={()=>{setPastDateModal({plant:p,action:"water"});setPastDate(today());}}/>
+                    <Btn s={{bg:"#E8F4FD",border:"#7BC8F6",text:"#0C5A8A"}} lbl="Move" fn={()=>{setMoveModal(p);setMoveRoom(p.r);}}/>                    <Btn s={{bg:"#fff8e6",border:"#EF9F27",text:"#854F0B"}} lbl="Log past date" fn={()=>{setPastDateModal({plant:p,action:"water"});setPastDate(today());}}/>
                     <Btn s={c.danger} lbl="Delete" fn={()=>{setDeleteModal(p);setDeleteReason("");}}/>
                   </div>
                 </div>
@@ -667,6 +698,24 @@ export default function App(){
           </div>
         </div>
       </div>}
+      {/* MOVE MODAL */}
+      {moveModal&&<div style={modalStyle} onClick={e=>{if(e.target===e.currentTarget)setMoveModal(null);}}>
+        <div style={cardStyle}>
+          <div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Move {moveModal.n}</div>
+          <div style={{fontSize:13,color:"#666",marginBottom:14}}>Currently in <strong>{moveModal.r}</strong></div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:11,color:"#888",marginBottom:3}}>New location</div>
+            <select value={moveRoom} onChange={e=>setMoveRoom(e.target.value)} style={inp}>
+              {ROOMS.map(r=><option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={movePlant} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:"#0C5A8A",color:"#fff",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Move plant</button>
+            <button onClick={()=>setMoveModal(null)} style={{flex:1,padding:"9px",borderRadius:8,border:"1px solid #ddd",background:"#fff",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          </div>
+        </div>
+      </div>}
+
       {/* SNOOZE MODAL */}
       {snoozeModal&&<div style={modalStyle} onClick={e=>{if(e.target===e.currentTarget)setSnoozeModal(null);}}>
         <div style={cardStyle}>
