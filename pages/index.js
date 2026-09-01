@@ -140,9 +140,11 @@ export default function App(){
   const [deleteReason,setDeleteReason]=useState("");
   const [repotModal,setRepotModal]=useState(null); // {plant}
   const [repotForm,setRepotForm]=useState({pw:"",ph:"",pm:"plastic",date:today()});
-  const [moveModal,setMoveModal]=useState(null); // plant
+  const [moveModal,setMoveModal]=useState(null);
   const [moveRoom,setMoveRoom]=useState("");
-  const [pastDateModal,setPastDateModal]=useState(null); // {plant,action}
+  const [snoozeModal,setSnoozeModal]=useState(null);
+  const [snoozeTarget,setSnoozeTarget]=useState("");
+  const [pastDateModal,setPastDateModal]=useState(null);
   const [pastDate,setPastDate]=useState(today());
 
   // Fetch weather
