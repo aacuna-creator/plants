@@ -376,6 +376,7 @@ export default function App(){
   const seasonEffect=seasonMult<1?"🌞 Watering more frequently":"❄️ Watering less frequently";
 
   const rows=plants.map(p=>{
+    try{
     const l=lg(p.id);
     const lw=l.lw||p.lw||null, lf=l.lf||p.lf||null;
     const wT=l.lw===date, fT=l.lf===date;
@@ -385,17 +386,19 @@ export default function App(){
     const count=wateringCounts[p.id]||0;
     const si=smartWaterInterval(p,weather,learned);
     const fi=smartFertInterval(p.t);
-    const w=!wT&&!snoozed&&days(lw,ref)>0&&days(lw,ref)>=si;
+    const w=!wT&&!snoozed&&!!lw&&days(lw,ref)>0&&days(lw,ref)>=si;
     const f=!fT&&!snoozed&&!!lf&&new Date(lf+"T12:00:00")<=ref&&days(lf,ref)>0&&days(lf,ref)>=fi;
     const lr=l.lr||p.lr||null;
     const rDue=lr?repotDue(lr,p.ri||REPOT_M[p.t]||12):null;
     const rT=l.lr===date;
     const needsRepot=!rT&&!!rDue&&rDue<=ref;
     const isLearned=!!learned&&count>=MIN_TO_LEARN;
-    const pw=l.pw||p.pw, ph=l.ph||p.ph, pm=l.pm||p.pm||"plastic";
-    const wOverdue=w?Math.max(0,days(lw,ref)-si):0;
-    const fOverdue=f?Math.max(0,days(lf,ref)-fi):0;
-    return{...p,lw,lf,wT,fT,snoozed,snoozeUntil,w,f,nd:nwd(lw,si,ref),lr,rDue,rT,needsRepot,si,fi,learned,count,isLearned,pw,ph,pm,wOverdue,fOverdue};
+    const pw=l.pw||p.pw||0, ph=l.ph||p.ph||0, pm=l.pm||p.pm||"plastic";
+    const wOverdue=w&&lw?Math.max(0,days(lw,ref)-si):0;
+    const fOverdue=f&&lf?Math.max(0,days(lf,ref)-fi):0;
+    const nd=lw?nwd(lw,si,ref):si;
+    return{...p,lw,lf,wT,fT,snoozed,snoozeUntil,w,f,nd,lr,rDue,rT,needsRepot,si,fi,learned,count,isLearned,pw,ph,pm,wOverdue,fOverdue};
+    }catch(e){console.error("Row error for plant",p.id,p.n,e);return{...p,w:false,f:false,wT:false,fT:false,snoozed:false,needsRepot:false,si:p.i||7,fi:28,nd:p.i||7,wOverdue:0,fOverdue:0,pw:p.pw||0,ph:p.ph||0,pm:p.pm||"plastic"};}
   });
 
   const vis=rows.filter(p=>room==="all"||p.r===room).filter(p=>{
